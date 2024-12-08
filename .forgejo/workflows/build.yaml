@@ -7,7 +7,8 @@ on:
       - "README.md"
       - ".gitignore"
       - "LICENSE"
-      - "docker"
+      - "docker/**"
+  workflow_dispatch:
 
 jobs:
   build:
