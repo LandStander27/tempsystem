@@ -3,11 +3,11 @@ name: Build
 on:
   push:
     branches: [ "master" ]
-    paths-ignore:
-      - "README.md"
-      - ".gitignore"
-      - "LICENSE"
-      - "docker/**"
+    paths:
+      - "!README.md"
+      - "!.gitignore"
+      - "!LICENSE"
+      - "!docker/**"
   workflow_dispatch:
 
 jobs:
