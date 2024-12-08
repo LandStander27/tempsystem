@@ -12,10 +12,10 @@ jobs:
     name: "Build Image"
     runs-on: docker
     container:
-      image: archlinux:latest
+      image: ubuntu:latest
     steps:
-      - name: Install deps
-        run: pacman --noconfirm -Sy git nodejs
+      # - name: Install deps
+      #   run: pacman --noconfirm -Sy git nodejs
 
       - name: Login to Codeberg
         uses: docker/login-action@v3
