@@ -16,4 +16,5 @@ if [ -e "$ZSH/oh-my-zsh.sh" ]; then
 fi
 
 export TERM=xterm-256color
+
 figlet Welcome | lolcat
