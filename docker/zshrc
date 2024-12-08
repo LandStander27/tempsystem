@@ -18,3 +18,4 @@ fi
 export TERM=xterm-256color
 
 figlet Welcome | lolcat
+echo The base image for tempsystem is archlinux:latest, so use \"sudo pacman -S program\" to install packages.
