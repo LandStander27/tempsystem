@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master" ]
+    paths-ignore:
+      - "README.md"
+      - ".gitignore"
+      - "LICENSE"
+      - "docker"
+
+jobs:
+  build:
+    name: "Build Check"
+    runs-on: docker
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install deps
+        run: pacman --noconfirm -Sy make git nodejs curl gcc cmake
+        
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make build
+
+      - name: Upload artifact
+        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: linux.zip
+          path: build/tempsystem
+        
