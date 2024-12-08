@@ -16,7 +16,7 @@ jobs:
       image: archlinux:latest
     steps:
       - name: Install deps
-        run: pacman --noconfirm -Sy nodejs docker
+        run: pacman --noconfirm -Sy nodejs docker qemu-base
 
       - name: Login to Codeberg
         uses: docker/login-action@v3
@@ -25,8 +25,8 @@ jobs:
           username: Land
           password: ${{ secrets.CODEBERG_TOKEN }}
 
-      # - name: Setup QEMU
-      #   uses: docker/setup-qemu-action@v3
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
