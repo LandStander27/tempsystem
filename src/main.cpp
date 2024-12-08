@@ -48,9 +48,9 @@ int main(int argc, char* argv[]) {
 	}
 	// curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1);
 	
-	print_info("Pulling git.kage.sj.strangled.net/land/tempsystem:latest...");
+	print_info("Pulling codeberg.org/land/tempsystem:latest...");
 	curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/images/create");
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "fromImage=git.kage.sj.strangled.net/land/tempsystem:latest");
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "fromImage=codeberg.org/land/tempsystem:latest");
 	CURLcode res = curl_easy_perform(curl);
 	if (res != CURLE_OK) {
 		print_error(std::format("curl_easy_perform(): {}", curl_easy_strerror(res)));
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
 	curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/create?name=tempsystem");
 	std::string json = std::format(R"({{
 		"name": "tempsystem",
-		"Image": "git.kage.sj.strangled.net/land/tempsystem:latest",
+		"Image": "codeberg.org/land/tempsystem:latest",
 		"Tty": true,
 		"Hostname": "tempsystem",
 		"HostConfig": {{
