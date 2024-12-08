@@ -16,7 +16,7 @@ jobs:
       image: archlinux:latest
     steps:
       - name: Install deps
-        run: pacman --noconfirm -Sy nodejs
+        run: pacman --noconfirm -Sy nodejs docker
 
       - name: Login to Codeberg
         uses: docker/login-action@v3
