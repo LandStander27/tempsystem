@@ -32,3 +32,15 @@ make build
 | `-m, --disable-cwd-mount`  | Prevents mounting the current directory to `~/work`.                                            |
 | `-n, --no-network`         | Disables network capabilities for the system (cannot be used with `--extra-packages`).            |
 | `-p, --extra-packages`     | Specifies extra packages to install in the system, space-delimited (cannot be used with `--no-network` or `--ro-root`). |
+#### Example
+```sh
+tempsystem --extra-packages "nodejs"
+LOG: Pulling codeberg.org/land/tempsystem:latest...
+LOG: Creating temporary system...
+LOG: Starting system...
+LOG: Installing package nodejs
+LOG: Entering...
+tempsystem@tempsystem ~/work (master*) $ node --version
+v23.3.0
+tempsystem@tempsystem ~/work (master*) $ 
+```
