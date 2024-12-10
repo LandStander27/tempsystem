@@ -1,6 +1,3 @@
-// #include <stdio.h>
-#include <cstdlib>
-#include <filesystem>
 #include <format>
 #include <curl/curl.h>
 #include <sys/wait.h>
@@ -11,21 +8,23 @@
 #include <argparse/argparse.hpp>
 
 #include "logging.hpp"
+#include "docker_api.hpp"
 
-struct memory {
-	char *response;
-	size_t size;
-};
-
-static size_t cb(void *data, size_t size, size_t nmemb, void *userp) {
-	size_t realsize = size * nmemb;
-	return realsize;
+static size_t cb(void* data, size_t size, size_t nmemb, void *userp) {
+	// print_debug(std::format("{}", size * nmemb));
+	((std::string*)userp)->append((char*)data, size * nmemb);
+	return size * nmemb;
 }
 
 int main(int argc, char* argv[]) {
 	
 	argparse::ArgumentParser program("tempsystem");
-	program.add_argument("-v", "--verbose").help("output stream incoming from the Docker Rest API").default_value(false).implicit_value(true);
+	program.add_argument("-v", "--verbose").help("increase output verbosity").default_value(false).implicit_value(true);
+	program.add_argument("-r", "--ro-root").help("mount system root as read only").default_value(false).implicit_value(true);
+	program.add_argument("-c", "--ro-cwd").help("mount current directory as read only").default_value(false).implicit_value(true);
+	program.add_argument("-m", "--disable-cwd-mount").help("do not mount current directory to ~/work").default_value(false).implicit_value(true);
+	// program.add_argument("-R", "--read-only").help("quickhand for -r -c").default_value(false).implicit_value(true);
+	
 	try {
 		program.parse_args(argc, argv);
 	} catch (const std::exception& err) {
@@ -33,7 +32,7 @@ int main(int argc, char* argv[]) {
 		std::cerr << program;
 		exit(1);
 	}
-	
+
 	void* curl = curl_easy_init();
 	if (!curl) {
 		print_error("curl_easy_init(): failed");
@@ -42,83 +41,57 @@ int main(int argc, char* argv[]) {
 	curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, "/var/run/docker.sock");
 	
 	if (program["--verbose"] == false) {
-		struct memory chunk = {0, 0};
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cb);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output_buffer);
+		docker_api_verbose = false;
+	} else {
+		docker_api_verbose = true;
 	}
-	// curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, -1);
 	
+	int status;
 	print_info("Pulling codeberg.org/land/tempsystem:latest...");
-	curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/images/create");
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "fromImage=codeberg.org/land/tempsystem:latest");
-	CURLcode res = curl_easy_perform(curl);
-	if (res != CURLE_OK) {
-		print_error(std::format("curl_easy_perform(): {}", curl_easy_strerror(res)));
-		return 1;
+	status = pull_image(curl);
+	if (status != 0) {
+		print_error(std::format("pull_image(): {}", status));
+		return status;
 	}
-	
-	struct curl_slist *list = NULL;
-	list = curl_slist_append(list, "Content-Type: application/json");
+
 	print_info("Creating temporary system...");
-	curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/create?name=tempsystem");
-	std::string json = std::format(R"({{
-		"name": "tempsystem",
-		"Image": "codeberg.org/land/tempsystem:latest",
-		"Tty": true,
-		"Hostname": "tempsystem",
-		"HostConfig": {{
-			"Binds": ["{}:/home/tempsystem/work"]
-		}}
-	}})", std::filesystem::current_path().c_str());
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json.c_str());
-	res = curl_easy_perform(curl);
-	if (res != CURLE_OK) {
-		print_error(std::format("curl_easy_perform(): {}", curl_easy_strerror(res)));
-		return 1;
+	status = create_container(curl, program["--disable-cwd-mount"] == false, program["--ro-root"] == true, program["--ro-cwd"] == true);
+	if (status != 0) {
+		print_error(std::format("create_container(): {}", status));
+		return status;
 	}
-	
+
 	print_info("Starting system...");
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, NULL);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
-	curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/tempsystem/start");
-	res = curl_easy_perform(curl);
-	if (res != CURLE_OK) {
-		print_error(std::format("curl_easy_perform(): {}", curl_easy_strerror(res)));
-		return 1;
+	status = start_container(curl);
+	if (status != 0) {
+		print_error(std::format("start_container(): {}", status));
+		return status;
 	}
-	
+
 	print_info("Entering...");
-	int status = system("docker exec -it tempsystem /usr/bin/zsh");
-	if (!WIFEXITED(status)) {
-		print_error(std::format("system(): failed"));
-		return 1;
-	}
-	if (WEXITSTATUS(status) != 0) {
-		print_error(std::format("docker exec failed"));
-		return 1;
+	status = exec_in_container("/usr/bin/zsh", true);
+	if (status != 0) {
+		print_error(std::format("exec_in_container(\"/usr/bin/zsh\"): {}", status));
+		return status;
 	}
 
 	print_info("Killing system...");
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "");
-	curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/tempsystem/kill");
-	res = curl_easy_perform(curl);
-	if (res != CURLE_OK) {
-		print_error(std::format("curl_easy_perform(): {}", curl_easy_strerror(res)));
-		return 1;
+	status = kill_container(curl);
+	if (status != 0) {
+		print_error(std::format("kill_container(): {}", status));
+		return status;
 	}
-	
+
 	print_info("Removing system...");
-	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-	curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/tempsystem");
-	res = curl_easy_perform(curl);
-	if (res != CURLE_OK) {
-		print_error(std::format("curl_easy_perform(): {}", curl_easy_strerror(res)));
-		return 1;
+	status = delete_container(curl);
+	if (status != 0) {
+		print_error(std::format("delete_container(): {}", status));
+		return status;
 	}
 	
 	curl_easy_cleanup(curl);
 	
 	return 0;
-	
 }
