@@ -27,7 +27,7 @@ int pull_image(void* curl) {
 	return 0;
 }
 
-int create_container(void* curl, bool mount_cwd, bool ro_root, bool ro_cwd) {
+int create_container(void* curl, bool mount_cwd, bool ro_root, bool ro_cwd, bool network) {
 	struct curl_slist *list = NULL;
 	list = curl_slist_append(list, "Content-Type: application/json");
 	// print_info("Creating temporary system...");
@@ -38,11 +38,13 @@ int create_container(void* curl, bool mount_cwd, bool ro_root, bool ro_cwd) {
 	"Image": "codeberg.org/land/tempsystem:latest",
 	"Tty": true,
 	"Hostname": "tempsystem",
+	"NetworkDisabled": {},
 	"HostConfig": {{
+		"Dns": ["1.1.1.1", "1.0.0.1"],
 		"ReadonlyRootfs": {}{}
 	}}
 }}
-	)", ro_root ? "true" : "false", mount_cwd ? std::format(R"(
+	)", network ? "true" : "false", ro_root ? "true" : "false", mount_cwd ? std::format(R"(
 ,
 "Binds": ["{}:/home/tempsystem/work{}"]
 	)", std::filesystem::current_path().c_str(), ro_cwd ? ":ro" : "") : "");

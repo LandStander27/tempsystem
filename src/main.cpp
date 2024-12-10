@@ -23,6 +23,7 @@ int main(int argc, char* argv[]) {
 	program.add_argument("-r", "--ro-root").help("mount system root as read only").default_value(false).implicit_value(true);
 	program.add_argument("-c", "--ro-cwd").help("mount current directory as read only").default_value(false).implicit_value(true);
 	program.add_argument("-m", "--disable-cwd-mount").help("do not mount current directory to ~/work").default_value(false).implicit_value(true);
+	program.add_argument("-n", "--no-network").help("disable network capabilities for the system").default_value(false).implicit_value(true);
 	// program.add_argument("-R", "--read-only").help("quickhand for -r -c").default_value(false).implicit_value(true);
 	
 	try {
@@ -57,7 +58,12 @@ int main(int argc, char* argv[]) {
 	}
 
 	print_info("Creating temporary system...");
-	status = create_container(curl, program["--disable-cwd-mount"] == false, program["--ro-root"] == true, program["--ro-cwd"] == true);
+	status = create_container(curl,
+		program["--disable-cwd-mount"] == false,
+		program["--ro-root"] == true,
+		program["--ro-cwd"] == true,
+		program["--no-network"] == true
+	);
 	if (status != 0) {
 		print_error(std::format("create_container(): {}", status));
 		return status;
