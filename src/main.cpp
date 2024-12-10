@@ -38,12 +38,11 @@ int main(int argc, char* argv[]) {
 	
 	argparse::ArgumentParser program("tempsystem");
 	program.add_argument("-v", "--verbose").help("increase output verbosity").default_value(false).implicit_value(true);
-	program.add_argument("-r", "--ro-root").help("mount system root as read only").default_value(false).implicit_value(true);
+	program.add_argument("-r", "--ro-root").help("mount system root as read only (cannot be used with --extra-packages)").default_value(false).implicit_value(true);
 	program.add_argument("-c", "--ro-cwd").help("mount current directory as read only").default_value(false).implicit_value(true);
 	program.add_argument("-m", "--disable-cwd-mount").help("do not mount current directory to ~/work").default_value(false).implicit_value(true);
-	program.add_argument("-n", "--no-network").help("disable network capabilities for the system").default_value(false).implicit_value(true);
-	program.add_argument("-p", "--extra-packages").help("extra packages to install in the system, space deliminated");
-	// program.add_argument("-R", "--read-only").help("quickhand for -r -c").default_value(false).implicit_value(true);
+	program.add_argument("-n", "--no-network").help("disable network capabilities for the system (cannot be used with --extra-packages)").default_value(false).implicit_value(true);
+	program.add_argument("-p", "--extra-packages").help("extra packages to install in the system, space deliminated (cannot be used with --no-network or --ro-root)");
 	
 	try {
 		program.parse_args(argc, argv);
