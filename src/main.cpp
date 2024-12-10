@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wordexp.h>
 
 #include <argparse/argparse.hpp>
 
@@ -16,6 +17,23 @@ static size_t cb(void* data, size_t size, size_t nmemb, void *userp) {
 	return size * nmemb;
 }
 
+void revert(void* curl) {
+	print_info("Killing system...");
+	int status = kill_container(curl);
+	if (status != 0) {
+		print_error(std::format("kill_container(): {}", status));
+		revert(curl);
+		exit(status);
+	}
+
+	print_info("Removing system...");
+	status = delete_container(curl);
+	if (status != 0) {
+		print_error(std::format("delete_container(): {}", status));
+		exit(status);
+	}
+}
+
 int main(int argc, char* argv[]) {
 	
 	argparse::ArgumentParser program("tempsystem");
@@ -24,6 +42,7 @@ int main(int argc, char* argv[]) {
 	program.add_argument("-c", "--ro-cwd").help("mount current directory as read only").default_value(false).implicit_value(true);
 	program.add_argument("-m", "--disable-cwd-mount").help("do not mount current directory to ~/work").default_value(false).implicit_value(true);
 	program.add_argument("-n", "--no-network").help("disable network capabilities for the system").default_value(false).implicit_value(true);
+	program.add_argument("-p", "--extra-packages").help("extra packages to install in the system, space deliminated");
 	// program.add_argument("-R", "--read-only").help("quickhand for -r -c").default_value(false).implicit_value(true);
 	
 	try {
@@ -42,12 +61,14 @@ int main(int argc, char* argv[]) {
 	curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, "/var/run/docker.sock");
 	
 	if (program["--verbose"] == false) {
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cb);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output_buffer);
+		// curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cb);
+		// curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output_buffer);
 		docker_api_verbose = false;
 	} else {
 		docker_api_verbose = true;
 	}
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cb);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output_buffer);
 	
 	int status;
 	print_info("Pulling codeberg.org/land/tempsystem:latest...");
@@ -73,29 +94,44 @@ int main(int argc, char* argv[]) {
 	status = start_container(curl);
 	if (status != 0) {
 		print_error(std::format("start_container(): {}", status));
+		revert(curl);
 		return status;
+	}
+	
+	if (program.is_used("--extra-packages")) {
+		std::string pkgs = program.get<std::string>("--extra-packages");
+		wordexp_t p;
+		wordexp(pkgs.c_str(), &p, WRDE_NOCMD);
+		char** w = p.we_wordv;
+		for (long unsigned int i = 0; i < p.we_wordc; i++) {
+			print_info(std::format("Installing package {}", w[i]));
+			status = exec_in_container(curl, std::format("/bin/pacman -Ssq \"^{}$\" | grep -x \"{}\"", w[i], w[i]), false, true);
+			if (status != 0) {
+				print_error(std::format("{} package does not exist.", w[i]));
+				wordfree(&p);
+				revert(curl);
+				return status;
+			}
+			status = exec_in_container(curl, std::format("/bin/sudo /bin/pacman -S --needed --noconfirm {}", w[i]), false, true);
+			if (status != 0) {
+				print_error(std::format("/bin/sudo /bin/pacman -S --needed --noconfirm {}: {}", w[i], status));
+				wordfree(&p);
+				revert(curl);
+				return status;
+			}
+		}
+		wordfree(&p);
 	}
 
 	print_info("Entering...");
-	status = exec_in_container("/usr/bin/zsh", true);
+	status = exec_in_container(curl, "/usr/bin/zsh", true, true);
 	if (status != 0) {
 		print_error(std::format("exec_in_container(\"/usr/bin/zsh\"): {}", status));
+		revert(curl);
 		return status;
 	}
 
-	print_info("Killing system...");
-	status = kill_container(curl);
-	if (status != 0) {
-		print_error(std::format("kill_container(): {}", status));
-		return status;
-	}
-
-	print_info("Removing system...");
-	status = delete_container(curl);
-	if (status != 0) {
-		print_error(std::format("delete_container(): {}", status));
-		return status;
-	}
+	revert(curl);
 	
 	curl_easy_cleanup(curl);
 	

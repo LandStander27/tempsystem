@@ -10,4 +10,4 @@ include_directories(${CURL_INCLUDE_DIR} include)
 FILE(GLOB sources src/*.cpp)
 add_executable(tempsystem ${sources})
 
-target_link_libraries(tempsystem ${CURL_LIBRARIES})
+target_link_libraries(tempsystem ${CURL_LIBRARIES} jsoncpp)
