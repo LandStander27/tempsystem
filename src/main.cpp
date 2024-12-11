@@ -43,6 +43,7 @@ int main(int argc, char* argv[]) {
 	program.add_argument("-m", "--disable-cwd-mount").help("do not mount current directory to ~/work").default_value(false).implicit_value(true);
 	program.add_argument("-n", "--no-network").help("disable network capabilities for the system (cannot be used with --extra-packages)").default_value(false).implicit_value(true);
 	program.add_argument("-p", "--extra-packages").help("extra packages to install in the system, space deliminated (cannot be used with --no-network or --ro-root)");
+	program.add_argument("-ap", "--extra-aur-packages").help("same as --extra-packages, but fetches the packages from the AUR");
 	
 	try {
 		program.parse_args(argc, argv);
@@ -114,6 +115,31 @@ int main(int argc, char* argv[]) {
 			status = exec_in_container(curl, std::format("/bin/sudo /bin/pacman -S --needed --noconfirm {}", w[i]), false, true);
 			if (status != 0) {
 				print_error(std::format("/bin/sudo /bin/pacman -S --needed --noconfirm {}: {}", w[i], status));
+				wordfree(&p);
+				revert(curl);
+				return status;
+			}
+		}
+		wordfree(&p);
+	}
+	
+	if (program.is_used("--extra-aur-packages")) {
+		std::string pkgs = program.get<std::string>("--extra-aur-packages");
+		wordexp_t p;
+		wordexp(pkgs.c_str(), &p, WRDE_NOCMD);
+		char** w = p.we_wordv;
+		for (long unsigned int i = 0; i < p.we_wordc; i++) {
+			print_info(std::format("Installing package {} from AUR", w[i]));
+			status = exec_in_container(curl, std::format("/bin/yay --aur -Ssq \"{}\" | grep -x \"{}\"", w[i], w[i]), false, true);
+			if (status != 0) {
+				print_error(std::format("{} package does not exist.", w[i]));
+				wordfree(&p);
+				revert(curl);
+				return status;
+			}
+			status = exec_in_container(curl, std::format("/bin/yay --sync --needed --noconfirm --noprogressbar {}", w[i]), false, true);
+			if (status != 0) {
+				print_error(std::format("/bin/yay --sync --needed --noconfirm --noprogressbar {}: {}", w[i], status));
 				wordfree(&p);
 				revert(curl);
 				return status;
