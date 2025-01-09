@@ -98,12 +98,16 @@ int main(int argc, char* argv[]) {
 		return status;
 	}
 	
-	print_info("Updating system...");
-	status = exec_in_container(curl, "/bin/sudo /bin/pacman -Syu --noconfirm", false, true);
-	if (status != 0) {
-		print_error(std::format("exec_in_container(\"/bin/pacman -Syu --noconfirm\"): {}", status));
-		revert(curl);
-		return status;
+	if (program["--no-network"] == false) {
+		print_info("Updating system...");
+		status = exec_in_container(curl, "/bin/sudo /bin/pacman -Syu --noconfirm", false, true);
+		if (status != 0) {
+			print_error(std::format("exec_in_container(\"/bin/pacman -Syu --noconfirm\"): {}", status));
+			revert(curl);
+			return status;
+		}
+	} else {
+		print_info("No network, skipping system ugrade");
 	}
 	
 	if (program.is_used("--extra-packages")) {
