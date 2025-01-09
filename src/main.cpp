@@ -98,6 +98,14 @@ int main(int argc, char* argv[]) {
 		return status;
 	}
 	
+	print_info("Updating system...");
+	status = exec_in_container(curl, "/bin/sudo /bin/pacman -Syu --noconfirm", false, true);
+	if (status != 0) {
+		print_error(std::format("exec_in_container(\"/bin/pacman -Syu --noconfirm\"): {}", status));
+		revert(curl);
+		return status;
+	}
+	
 	if (program.is_used("--extra-packages")) {
 		std::string pkgs = program.get<std::string>("--extra-packages");
 		wordexp_t p;
@@ -151,9 +159,9 @@ int main(int argc, char* argv[]) {
 	print_info("Entering...");
 	status = exec_in_container(curl, "/usr/bin/zsh", true, true);
 	if (status != 0) {
-		print_error(std::format("exec_in_container(\"/usr/bin/zsh\"): {}", status));
-		revert(curl);
-		return status;
+		print_error(std::format("/usr/bin/zsh returned non-zero exitcode: {}", status));
+		// revert(curl);
+		// return status;
 	}
 
 	revert(curl);
