@@ -12,7 +12,6 @@
 #include "docker_api.hpp"
 
 static size_t cb(void* data, size_t size, size_t nmemb, void *userp) {
-	// print_debug(std::format("{}", size * nmemb));
 	((std::string*)userp)->append((char*)data, size * nmemb);
 	return size * nmemb;
 }
@@ -63,8 +62,6 @@ int main(int argc, char* argv[]) {
 	curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, "/var/run/docker.sock");
 	
 	if (program["--verbose"] == false) {
-		// curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, cb);
-		// curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output_buffer);
 		docker_api_verbose = false;
 	} else {
 		docker_api_verbose = true;
