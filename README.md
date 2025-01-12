@@ -4,6 +4,21 @@
 - Difference between just using `archlinux:latest` with Docker CLI: Includes sane defaults, pretty terminal theme/plugins, etc.
 
 ## Usage
+### Using my repo (For Arch-based distros)
+```sh
+# Install pacsync command
+sudo pacman -S --needed pacutils
+
+# Add repo
+echo -e "\n\n[landware]\nSigLevel = Optional TrustAll\nServer = https://kage.sj.strangled.net/landware" | sudo tee -a /etc/pacman.conf
+
+# Sync repo without syncing all repos
+sudo pacsync landware
+
+# Install like a normal package
+sudo pacman -S tempsystem-git
+```
+
 ### Downloading
 1. Go to latest build action at https://codeberg.org/Land/tempsystem/actions.
 2. Download the `linux.zip` artifact.
