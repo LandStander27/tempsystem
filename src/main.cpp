@@ -44,6 +44,8 @@ int main(int argc, char* argv[]) {
 	program.add_argument("-n", "--no-network").help("disable network capabilities for the system (cannot be used with --extra-packages)").default_value(false).implicit_value(true);
 	program.add_argument("-p", "--extra-packages").help("extra packages to install in the system, space deliminated (cannot be used with --no-network or --ro-root)");
 	program.add_argument("-ap", "--extra-aur-packages").help("same as --extra-packages, but fetches the packages from the AUR");
+	// program.add_argument("-i", "--interactive").help("Execute COMMAND as interactive.").default_value(false).implicit_value(true);
+	program.add_argument("COMMAND").help("Command to execute in container, then exit").default_value("/usr/bin/zsh");
 	
 	try {
 		program.parse_args(argc, argv);
@@ -160,12 +162,10 @@ int main(int argc, char* argv[]) {
 		wordfree(&p);
 	}
 
-	print_info("Entering...");
-	status = exec_in_container(curl, "/usr/bin/zsh", true, true);
+	print_info("Executing command...");
+	status = exec_in_container(curl, program.get("COMMAND"), true, true);
 	if (status != 0) {
 		print_error(std::format("/usr/bin/zsh returned non-zero exitcode: {}", status));
-		// revert(curl);
-		// return status;
 	}
 
 	revert(curl);
