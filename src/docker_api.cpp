@@ -34,7 +34,7 @@ int pull_image(void* curl) {
 	return 0;
 }
 
-int create_container(void* curl, bool mount_cwd, bool ro_root, bool ro_cwd, bool network) {
+int create_container(void* curl, bool mount_cwd, bool ro_root, bool ro_cwd, bool network, bool privileged) {
 	curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
 	struct curl_slist *list = NULL;
 	list = curl_slist_append(list, "Content-Type: application/json");
@@ -49,10 +49,11 @@ int create_container(void* curl, bool mount_cwd, bool ro_root, bool ro_cwd, bool
 	"NetworkDisabled": {},
 	"HostConfig": {{
 		"Dns": ["1.1.1.1", "1.0.0.1"],
+		"Privileged": {},
 		"ReadonlyRootfs": {}{}
 	}}
 }}
-	)", network ? "true" : "false", ro_root ? "true" : "false", mount_cwd ? std::format(R"(
+	)", network ? "true" : "false", privileged ? "true" : "false", ro_root ? "true" : "false", mount_cwd ? std::format(R"(
 ,
 "Binds": ["{}:/home/tempsystem/work{}"]
 	)", std::filesystem::current_path().c_str(), ro_cwd ? ":ro" : "") : "");

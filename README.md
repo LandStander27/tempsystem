@@ -13,7 +13,7 @@
 ```sh
 # Install deps
 # Arch Linux
-pacman -S make git curl gcc cmake jsoncpp
+pacman -S make git curl cmake jsoncpp
 
 # Clone the repo
 git clone https://codeberg.org/Land/tempsystem.git
@@ -33,9 +33,12 @@ make build
 | `-n, --no-network`          | Disables network capabilities for the system (cannot be used with `--extra-packages`).            |
 | `-p, --extra-packages`      | Specifies extra packages to install in the system, space-delimited (cannot be used with `--no-network` or `--ro-root`). |
 | `-ap, --extra-aur-packages` | same as --extra-packages, but fetches the packages from the AUR. |
+| `-x, --privileged` | Give extended privileges to the system. |
+| `COMMAND` | Command to execute in container, then exit. |
+
 #### Example
 ```sh
-tempsystem --extra-packages "nodejs"
+user@arch ~ $ tempsystem --extra-packages "nodejs"
 LOG: Pulling codeberg.org/land/tempsystem:latest...
 LOG: Creating temporary system...
 LOG: Starting system...
