@@ -10,6 +10,7 @@
 
 #include "logging.hpp"
 #include "docker_api.hpp"
+#include "info.hpp"
 
 static size_t cb(void* data, size_t size, size_t nmemb, void *userp) {
 	((std::string*)userp)->append((char*)data, size * nmemb);
@@ -35,7 +36,7 @@ void revert(void* curl) {
 
 int main(int argc, char* argv[]) {
 	
-	argparse::ArgumentParser program("tempsystem");
+	argparse::ArgumentParser program("tempsystem", version);
 	program.add_argument("-v", "--verbose").help("increase output verbosity").default_value(false).implicit_value(true);
 	program.add_argument("-r", "--ro-root").help("mount system root as read only (cannot be used with --extra-packages)").default_value(false).implicit_value(true);
 	program.add_argument("-c", "--ro-cwd").help("mount current directory as read only").default_value(false).implicit_value(true);
