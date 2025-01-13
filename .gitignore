@@ -1,5 +1,4 @@
 /build
 /.clangd
 
-/makepkg/**
-!/makepkg/PKGBUILD
+/makepkg
