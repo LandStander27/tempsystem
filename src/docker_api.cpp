@@ -83,8 +83,8 @@ int start_container(void* curl) {
 }
 
 int exec_in_container(void* curl, std::string cmd, bool interactive, bool attach_stdout) {
-	if (interactive) {
-		if (docker_api_verbose) print_debug(std::format("Executing: /bin/docker exec -it tempsystem /usr/bin/zsh -c \"{}; exit\"", cmd));
+	if (attach_stdout) {
+		if (docker_api_verbose) print_debug(std::format("Executing: /bin/docker exec -it tempsystem /usr/bin/zsh -{}c \"{}; exit\"", interactive ? "i" : "", cmd));
 		if (fork() == 0) {
 			const std::string tmp = std::format("{}; exit", cmd);
 			char* tmp2 = (char*)tmp.c_str();
@@ -96,7 +96,8 @@ int exec_in_container(void* curl, std::string cmd, bool interactive, bool attach
 			// 	char* args[] = { (char*)"/bin/docker", (char*)"exec", (char*)"tempsystem", (char*)"/usr/bin/zsh", (char*)"-c", tmp2, NULL };
 			// 	status = execvp("/bin/docker", args);
 			// }
-			char* args[] = { (char*)"/bin/docker", (char*)"exec", (char*)"-it", (char*)"tempsystem", (char*)"/usr/bin/zsh", (char*)"-c", tmp2, NULL };
+			std::string s = std::format("-{}c", interactive ? "i" : "");
+			char* args[] = { (char*)"/bin/docker", (char*)"exec", (char*)"-it", (char*)"tempsystem", (char*)"/usr/bin/zsh", (char*)s.c_str(), tmp2, NULL };
 			status = execvp("/bin/docker", args);
 			if (status != -1) {
 				print_error(std::format("execvp(): {}", strerror(errno)));
@@ -129,12 +130,12 @@ int exec_in_container(void* curl, std::string cmd, bool interactive, bool attach
 		std::string json = std::format(R"(
 {{
 	"AttachStdin": false,
-	"AttachStdout": {},
-	"AttachStderr": {},
+	"AttachStdout": false,
+	"AttachStderr": false,
 	"Cmd": ["/usr/bin/zsh", "-c", "{}"],
 	"User": "tempsystem"
 }}
-		)", attach_stdout ? "true" : "false", attach_stdout ? "true" : "false", cmd);
+		)", cmd);
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json.c_str());
 		curl_easy_setopt(curl, CURLOPT_URL, "http://localhost/containers/tempsystem/exec");
 		if (docker_api_verbose) print_debug(std::format("(/var/run/docker.socket) POST: http://localhost/containers/tempsystem/exec\nPOST data: {}", json));

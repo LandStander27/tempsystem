@@ -45,6 +45,7 @@ int main(int argc, char* argv[]) {
 	program.add_argument("-p", "--extra-packages").help("extra packages to install in the system, space deliminated (cannot be used with --no-network or --ro-root)");
 	program.add_argument("-ap", "--extra-aur-packages").help("same as --extra-packages, but fetches the packages from the AUR");
 	program.add_argument("-x", "--privileged").help("Give extended privileges to the system").default_value(false).implicit_value(true);
+	program.add_argument("-i", "--interactive").help("Execute COMMAND as interactive (only used when COMMAND is supplied)").default_value(false).implicit_value(true);
 	program.add_argument("COMMAND").help("Command to execute in container, then exit").default_value("/usr/bin/zsh");
 	
 	try {
@@ -101,7 +102,7 @@ int main(int argc, char* argv[]) {
 	
 	if (program["--no-network"] == false) {
 		print_info("Updating system...");
-		status = exec_in_container(curl, "/bin/sudo /bin/pacman -Syu --noconfirm", false, true);
+		status = exec_in_container(curl, "/bin/sudo /bin/pacman -Syu --noconfirm", false, false);
 		if (status != 0) {
 			print_error(std::format("exec_in_container(\"/bin/pacman -Syu --noconfirm\"): {}", status));
 			revert(curl);
@@ -118,14 +119,14 @@ int main(int argc, char* argv[]) {
 		char** w = p.we_wordv;
 		for (long unsigned int i = 0; i < p.we_wordc; i++) {
 			print_info(std::format("Installing package {}", w[i]));
-			status = exec_in_container(curl, std::format("/bin/pacman -Ssq \"^{}$\" | grep -x \"{}\"", w[i], w[i]), false, true);
+			status = exec_in_container(curl, std::format("/bin/pacman -Ssq \"^{}$\" | grep -x \"{}\"", w[i], w[i]), false, false);
 			if (status != 0) {
 				print_error(std::format("{} package does not exist.", w[i]));
 				wordfree(&p);
 				revert(curl);
 				return status;
 			}
-			status = exec_in_container(curl, std::format("/bin/sudo /bin/pacman -S --needed --noconfirm {}", w[i]), false, true);
+			status = exec_in_container(curl, std::format("/bin/sudo /bin/pacman -S --needed --noconfirm {}", w[i]), false, false);
 			if (status != 0) {
 				print_error(std::format("/bin/sudo /bin/pacman -S --needed --noconfirm {}: {}", w[i], status));
 				wordfree(&p);
@@ -143,14 +144,14 @@ int main(int argc, char* argv[]) {
 		char** w = p.we_wordv;
 		for (long unsigned int i = 0; i < p.we_wordc; i++) {
 			print_info(std::format("Installing package {} from AUR", w[i]));
-			status = exec_in_container(curl, std::format("/bin/yay --aur -Ssq \"{}\" | grep -x \"{}\"", w[i], w[i]), false, true);
+			status = exec_in_container(curl, std::format("/bin/yay --aur -Ssq \"{}\" | grep -x \"{}\"", w[i], w[i]), false, false);
 			if (status != 0) {
 				print_error(std::format("{} package does not exist.", w[i]));
 				wordfree(&p);
 				revert(curl);
 				return status;
 			}
-			status = exec_in_container(curl, std::format("/bin/yay --sync --needed --noconfirm --noprogressbar {}", w[i]), false, true);
+			status = exec_in_container(curl, std::format("/bin/yay --sync --needed --noconfirm --noprogressbar {}", w[i]), false, false);
 			if (status != 0) {
 				print_error(std::format("/bin/yay --sync --needed --noconfirm --noprogressbar {}: {}", w[i], status));
 				wordfree(&p);
@@ -162,9 +163,16 @@ int main(int argc, char* argv[]) {
 	}
 
 	print_info("Executing command...");
-	status = exec_in_container(curl, program.get("COMMAND"), true, true);
-	if (status != 0) {
-		print_error(std::format("/usr/bin/zsh returned non-zero exitcode: {}", status));
+	if (program.is_used("COMMAND")) {
+		status = exec_in_container(curl, program.get("COMMAND"), program["--interactive"] == true, true);
+		if (status != 0) {
+			print_error(std::format("COMMAND returned non-zero exitcode: {}", status));
+		}
+	} else {
+		status = exec_in_container(curl, std::format("export SHOW_WELCOME=true; {}", program.get("COMMAND")), true, true);
+		if (status != 0) {
+			print_error(std::format("COMMAND returned non-zero exitcode: {}", status));
+		}
 	}
 
 	revert(curl);
