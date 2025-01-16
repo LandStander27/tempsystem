@@ -49,6 +49,7 @@ make build
 | `-p, --extra-packages`      | Specifies extra packages to install in the system, space-delimited (cannot be used with `--no-network` or `--ro-root`). |
 | `-ap, --extra-aur-packages` | same as --extra-packages, but fetches the packages from the AUR. |
 | `-x, --privileged`          | Give extended privileges to the system. |
+| `-i, --interactive`         | Execute COMMAND as interactive (only used when COMMAND is supplied). |
 | `COMMAND`                   | Command to execute in container, then exit. |
 
 #### Example
