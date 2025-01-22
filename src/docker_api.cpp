@@ -129,9 +129,9 @@ int exec_in_container(void* curl, std::string cmd, bool interactive, bool attach
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 		std::string json = std::format(R"(
 {{
-	"AttachStdin": false,
-	"AttachStdout": false,
-	"AttachStderr": false,
+	"AttachStdin": true,
+	"AttachStdout": true,
+	"AttachStderr": true,
 	"Cmd": ["/usr/bin/zsh", "-c", "{}"],
 	"User": "tempsystem"
 }}
