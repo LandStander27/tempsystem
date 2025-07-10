@@ -13,7 +13,7 @@ jobs:
       image: archlinux:latest
     steps:
       - name: Install deps
-        run: pacman --noconfirm -Sy git nodejs
+        run: pacman --noconfirm -Sy make git nodejs curl gcc cmake jsoncpp
 
       - name: Checkout the repo
         uses: actions/checkout@v4
