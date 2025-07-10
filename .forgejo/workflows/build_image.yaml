@@ -11,6 +11,16 @@ jobs:
     runs-on: docker
     container:
       image: archlinux:latest
+      env:
+        DOCKER_HOST: "tcp://docker:2375"
+        DOCKER_TLS_CERTDIR: ""
+    services:
+        docker:
+          image: docker:dind
+          options: >-
+            --privileged
+          env:
+            DOCKER_TLS_CERTDIR: ""
     steps:
       - name: Install deps
         run: pacman --noconfirm -Sy git nodejs curl docker
