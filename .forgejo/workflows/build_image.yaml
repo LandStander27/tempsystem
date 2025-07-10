@@ -10,13 +10,26 @@ jobs:
     name: "Build"
     runs-on: docker
     container:
-      image: docker.io/woodpeckerci/plugin-docker-buildx:latest
-    settings:
-      dockerfile: docker/Dockerfile
-      repo: codeberg.org/land/tempsystem
-      registry: codeberg.org
-      tags: latest
-      username: Land
-      password:
-        from_secret: CODEBERG_TOKEN
-      platforms: linux/amd64
+      image: alpine
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+    
+      - name: Login to the registry
+        uses: docker/login-action@v3
+        with:
+          registry: codeberg.org
+          username: Land
+          password: ${{ secrets.CODEBERG_TOKEN }}
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: docker
+          push: true
+          provenance: false
+          platforms: linux/amd64
+          tags: codeberg.org/land/tempsystem:latest
