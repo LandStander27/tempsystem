@@ -9,6 +9,7 @@ on:
       - "!.gitignore"
       - "!LICENSE"
       - "!docker/**"
+      - "!.forgejo/workflows/build_image.yaml"
   workflow_dispatch:
 
 jobs:
