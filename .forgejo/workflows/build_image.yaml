@@ -15,12 +15,12 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@v4
     
-      - name: Login to the registry
-        uses: docker/login-action@v3
-        with:
-          registry: codeberg.org
-          username: Land
-          password: ${{ secrets.CODEBERG_TOKEN }}
+      # - name: Login to the registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: codeberg.org
+      #     username: Land
+      #     password: ${{ secrets.CODEBERG_TOKEN }}
           
       # - name: Set up Docker Buildx
       #   uses: docker/setup-buildx-action@v3
