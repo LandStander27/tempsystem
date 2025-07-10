@@ -10,8 +10,11 @@ jobs:
     name: "Build"
     runs-on: docker
     container:
-      image: alpine
+      image: archlinux:latest
     steps:
+      - name: Install docker
+        run: pacman --noconfirm -Sy docker docker-buildx
+
       - name: Checkout the repo
         uses: actions/checkout@v4
     
