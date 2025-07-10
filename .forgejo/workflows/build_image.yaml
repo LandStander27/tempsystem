@@ -13,7 +13,7 @@ jobs:
       image: archlinux:latest
     steps:
       - name: Install deps
-        run: pacman --noconfirm -Sy git nodejs curl
+        run: pacman --noconfirm -Sy git nodejs curl docker
 
       - name: Checkout the repo
         uses: actions/checkout@v4
