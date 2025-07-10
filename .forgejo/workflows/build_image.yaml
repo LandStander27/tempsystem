@@ -1,0 +1,22 @@
+name: Build and publish package
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  build_publish:
+    name: "Build"
+    runs-on: docker
+    container:
+      image: docker.io/woodpeckerci/plugin-docker-buildx:latest
+    settings:
+      dockerfile: docker/Dockerfile
+      repo: codeberg.org/land/tempsystem
+      registry: codeberg.org
+      tags: latest
+      username: Land
+      password:
+        from_secret: CODEBERG_TOKEN
+      platforms: linux/amd64
