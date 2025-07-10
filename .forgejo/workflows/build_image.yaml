@@ -12,6 +12,9 @@ jobs:
     container:
       image: archlinux:latest
     steps:
+      - name: Install deps
+        run: pacman --noconfirm -Sy git nodejs
+
       - name: Checkout the repo
         uses: actions/checkout@v4
     
