@@ -10,7 +10,9 @@
 sudo pacman -S --needed pacutils
 
 # Add repo
-echo -e "\n\n[landware]\nSigLevel = Optional TrustAll\nServer = https://kage.sj.strangled.net/landware" | sudo tee -a /etc/pacman.conf
+echo "[landware]              
+Server = https://repo.kage.sj.strangled.net/landware/x86_64
+SigLevel = DatabaseNever PackageNever TrustedOnly" | sudo tee -a /etc/pacman.conf
 
 # Sync repo without syncing all repos
 sudo pacsync landware
