@@ -25,8 +25,8 @@ jobs:
       - name: Install deps
         run: pacman --noconfirm -Sy git nodejs curl docker docker-buildx
         
-      - name: Docker check
-        run: docker info
+      # - name: Docker check
+      #   run: docker info
 
       - uses: actions/checkout@v4
 
