@@ -25,6 +25,9 @@ jobs:
       - name: Install deps
         run: pacman --noconfirm -Sy git nodejs curl docker docker-buildx
 
+      - name: Wait until dockerd ready
+        run: sleep 5
+
       - name: Check Docker service logs
         run: curl -s docker:2375/version || echo "dockerd might have failed"
 
