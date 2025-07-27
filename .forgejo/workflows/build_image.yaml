@@ -10,23 +10,26 @@ jobs:
     name: "Build"
     runs-on: docker
     container:
-      image: docker:latest
-      options: --privileged -v /var/run/docker.sock:/var/run/docker.sock
-      # env:
-      #   DOCKER_HOST: "tcp://docker:2375"
-      #   DOCKER_TLS_CERTDIR: ""
-    # services:
-    #     docker:
-    #       image: docker:dind
-    #       options: --privileged -- dockerd -H tcp://0.0.0.0:2375 --tls=false
-    #       env:
-    #         DOCKER_TLS_CERTDIR: ""
+      image: archlinux:latest
+      options: --privileged
+      env:
+        DOCKER_HOST: "tcp://docker:2375"
+        DOCKER_TLS_CERTDIR: ""
+    services:
+        docker:
+          image: docker:28.3.1-dind
+          options: --privileged -- dockerd -H tcp://0.0.0.0:2375 --tls=false
+          env:
+            DOCKER_TLS_CERTDIR: ""
     steps:
-      # - name: Install deps
-      #   run: pacman --noconfirm -Sy git nodejs curl docker docker-buildx
+      - name: Install deps
+        run: pacman --noconfirm -Sy git nodejs curl docker docker-buildx
 
-      # - name: check
-      #   run: ping -c 5 docker
+      - name: check
+        run: ping -c 5 docker
+
+      - name: Check Docker service logs
+        run: curl -s docker:2375/version || echo "dockerd might have failed"
 
       - name: Docker check
         run: docker info
