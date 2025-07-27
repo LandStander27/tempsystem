@@ -25,8 +25,16 @@ jobs:
       - name: Install deps
         run: pacman --noconfirm -Sy git nodejs curl docker docker-buildx
 
-      - name: Wait until dockerd ready
-        run: sleep 5
+      - name: Wait for Docker daemon
+        run: |
+          for i in {1..30}; do
+            if docker info > /dev/null 2>&1; then
+              echo "Docker is ready!"
+              break
+            fi
+            echo "Waiting for Docker to be ready..."
+            sleep 1
+          done
 
       - name: Check Docker service logs
         run: curl -s docker:2375/version || echo "dockerd might have failed"
@@ -38,24 +46,9 @@ jobs:
 
       - name: Login to the registry
         run: docker login -u Land -p ${{ secrets.CODEBERG_TOKEN }} codeberg.org
-        # uses: docker/login-action@v3
-        # with:
-        #   registry: codeberg.org
-        #   username: Land
-        #   password: ${{ secrets.CODEBERG_TOKEN }}
-          
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@v3
 
       - name: Build
         run: cd docker && docker build -t codeberg.org/land/tempsystem .
-        # uses: docker/build-push-action@v6
-        # with:
-        #   context: docker
-        #   push: true
-        #   provenance: false
-        #   platforms: linux/amd64
-        #   tags: codeberg.org/land/tempsystem:latest
 
       - name: Push
         run: cd docker && docker push codeberg.org/land/tempsystem
