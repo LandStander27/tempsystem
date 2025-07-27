@@ -11,7 +11,7 @@ jobs:
     runs-on: docker
     container:
       image: docker:latest
-      options: --privileged
+      options: --privileged -v /var/run/docker.sock:/var/run/docker.sock
       # env:
       #   DOCKER_HOST: "tcp://docker:2375"
       #   DOCKER_TLS_CERTDIR: ""
