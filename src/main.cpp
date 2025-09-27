@@ -12,13 +12,15 @@
 #include "docker_api.hpp"
 #include "info.hpp"
 
+static bool quiet = false;
+
 static size_t cb(void* data, size_t size, size_t nmemb, void *userp) {
 	((std::string*)userp)->append((char*)data, size * nmemb);
 	return size * nmemb;
 }
 
 void revert(void* curl) {
-	print_info("Killing system...");
+	if (!quiet) print_info("Killing system...");
 	int status = kill_container(curl);
 	if (status != 0) {
 		print_error(std::format("kill_container(): {}", status));
@@ -26,7 +28,7 @@ void revert(void* curl) {
 		exit(status);
 	}
 
-	print_info("Removing system...");
+	if (!quiet) print_info("Removing system...");
 	status = delete_container(curl);
 	if (status != 0) {
 		print_error(std::format("delete_container(): {}", status));
@@ -37,16 +39,18 @@ void revert(void* curl) {
 int main(int argc, char* argv[]) {
 	
 	argparse::ArgumentParser program("tempsystem", version);
+	program.add_argument("-q", "--quiet").help("disable logging").default_value(false).implicit_value(true);
 	program.add_argument("-v", "--verbose").help("increase output verbosity").default_value(false).implicit_value(true);
+	program.add_argument("-u", "--update-system").help("run a system update before entering").default_value(false).implicit_value(true);
 	program.add_argument("-r", "--ro-root").help("mount system root as read only (cannot be used with --extra-packages)").default_value(false).implicit_value(true);
 	program.add_argument("-c", "--ro-cwd").help("mount current directory as read only").default_value(false).implicit_value(true);
 	program.add_argument("-m", "--disable-cwd-mount").help("do not mount current directory to ~/work").default_value(false).implicit_value(true);
 	program.add_argument("-n", "--no-network").help("disable network capabilities for the system (cannot be used with --extra-packages)").default_value(false).implicit_value(true);
 	program.add_argument("-p", "--extra-packages").help("extra packages to install in the system, space deliminated (cannot be used with --no-network or --ro-root)");
 	program.add_argument("-ap", "--extra-aur-packages").help("same as --extra-packages, but fetches the packages from the AUR");
-	program.add_argument("-x", "--privileged").help("Give extended privileges to the system").default_value(false).implicit_value(true);
-	program.add_argument("-i", "--interactive").help("Execute COMMAND as interactive (only used when COMMAND is supplied)").default_value(false).implicit_value(true);
-	program.add_argument("COMMAND").help("Command to execute in container, then exit").default_value("/usr/bin/zsh");
+	program.add_argument("-x", "--privileged").help("give extended privileges to the system").default_value(false).implicit_value(true);
+	program.add_argument("-i", "--interactive").help("execute COMMAND as interactive (only used when COMMAND is supplied)").default_value(false).implicit_value(true);
+	program.add_argument("COMMAND").help("command to execute in container, then exit").default_value("/usr/bin/zsh");
 	
 	try {
 		program.parse_args(argc, argv);
@@ -56,6 +60,7 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	quiet = program["--quiet"] == true;
 	void* curl = curl_easy_init();
 	if (!curl) {
 		print_error("curl_easy_init(): failed");
@@ -72,14 +77,14 @@ int main(int argc, char* argv[]) {
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output_buffer);
 	
 	int status;
-	print_info("Pulling codeberg.org/land/tempsystem:latest...");
+	if (!quiet) print_info("Pulling codeberg.org/land/tempsystem:latest...");
 	status = pull_image(curl);
 	if (status != 0) {
 		print_error(std::format("pull_image(): {}", status));
 		return status;
 	}
 
-	print_info("Creating temporary system...");
+	if (!quiet) print_info("Creating temporary system...");
 	status = create_container(curl,
 		program["--disable-cwd-mount"] == false,
 		program["--ro-root"] == true,
@@ -92,7 +97,7 @@ int main(int argc, char* argv[]) {
 		return status;
 	}
 
-	print_info("Starting system...");
+	if (!quiet) print_info("Starting system...");
 	status = start_container(curl);
 	if (status != 0) {
 		print_error(std::format("start_container(): {}", status));
@@ -101,15 +106,17 @@ int main(int argc, char* argv[]) {
 	}
 	
 	if (program["--no-network"] == false) {
-		print_info("Updating system...");
-		status = exec_in_container(curl, "/bin/sudo /bin/pacman -Syu --noconfirm", false, false);
-		if (status != 0) {
-			print_error(std::format("exec_in_container(\"/bin/pacman -Syu --noconfirm\"): {}", status));
-			revert(curl);
-			return status;
+		if (program["--update-system"] == true) {
+			if (!quiet) print_info("Updating system...");
+			status = exec_in_container(curl, "/bin/sudo /bin/pacman -Syu --noconfirm", false, false);
+			if (status != 0) {
+				print_error(std::format("exec_in_container(\"/bin/pacman -Syu --noconfirm\"): {}", status));
+				revert(curl);
+				return status;
+			}
 		}
 	} else {
-		print_info("No network, skipping system ugrade");
+		if (!quiet) print_info("No network, skipping system ugrade");
 	}
 	
 	if (program.is_used("--extra-packages")) {
@@ -118,7 +125,7 @@ int main(int argc, char* argv[]) {
 		wordexp(pkgs.c_str(), &p, WRDE_NOCMD);
 		char** w = p.we_wordv;
 		for (long unsigned int i = 0; i < p.we_wordc; i++) {
-			print_info(std::format("Installing package {}", w[i]));
+			if (!quiet) print_info(std::format("Installing package {}", w[i]));
 			status = exec_in_container(curl, std::format("/bin/pacman -Ssq \"^{}$\" | grep -x \"{}\"", w[i], w[i]), false, false);
 			if (status != 0) {
 				print_error(std::format("{} package does not exist.", w[i]));
@@ -143,7 +150,7 @@ int main(int argc, char* argv[]) {
 		wordexp(pkgs.c_str(), &p, WRDE_NOCMD);
 		char** w = p.we_wordv;
 		for (long unsigned int i = 0; i < p.we_wordc; i++) {
-			print_info(std::format("Installing package {} from AUR", w[i]));
+			if (!quiet) print_info(std::format("Installing package {} from AUR", w[i]));
 			status = exec_in_container(curl, std::format("/bin/yay --aur -Ssq \"{}\" | grep -x \"{}\"", w[i], w[i]), false, false);
 			if (status != 0) {
 				print_error(std::format("{} package does not exist.", w[i]));
@@ -162,7 +169,7 @@ int main(int argc, char* argv[]) {
 		wordfree(&p);
 	}
 
-	print_info("Executing command...");
+	if (!quiet) print_info("Executing command...");
 	if (program.is_used("COMMAND")) {
 		status = exec_in_container(curl, program.get("COMMAND"), program["--interactive"] == true, true);
 		if (status != 0) {
